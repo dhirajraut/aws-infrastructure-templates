@@ -6,7 +6,7 @@ import { Environment } from '../lib/environment';
 
 const app = new cdk.App();
 
-/* Read deploymentEnvironment from context. e.g. 	cdk deploy --context deploymentEnvironment=dev */
+/* Read deploymentEnvironment from context. e.g. 	cdk deploy --context deploymentEnvironment=DEVELOPMENT */
 const deploymentEnvironment = app.node.tryGetContext('deploymentEnvironment');
 console.log (`Received deploymentEnvironment as ${deploymentEnvironment}`)
 
@@ -27,7 +27,7 @@ new AwsCdkcloudformationExperimentsStack(app, stackName, {
 
   /* Uncomment the next line if you know exactly what Account and Region you
    * want to deploy the stack to. */
-  env: { account: '733330203478', region: 'us-east-1' },
+  env: { account: '<<accountId>>', region: 'us-east-1' },
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 });

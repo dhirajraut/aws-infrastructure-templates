@@ -31,7 +31,7 @@ export class Environment {
   ) {}
 
   /* Enum values. */
-  static readonly DEVELOPMENT = new Environment('dev', '733330203478', AcceptedRegions.US_EAST_1, 'vpc-0ec918e11c1c525ef', ['subnet-0fa0cac8fc588da88', 'subnet-0037259c69e95b302'], ['sg-0a69b6cac756760a2']);
+  static readonly DEVELOPMENT = new Environment('dev', 'someaccountid', AcceptedRegions.US_EAST_1, 'devVpcId', ['testSubnetId', 'testSubnetId'], ['testSecurityGroupId']);
   static readonly TEST        = new Environment('tst', 'someaccountid', AcceptedRegions.US_EAST_1, 'testVpcId', ['testSubnetId'], ['testSecurityGroupId']);
   static readonly UAT         = new Environment('uat', 'someaccountid', AcceptedRegions.US_EAST_1, 'uatVpcId', ['testSubnetId'], ['testSecurityGroupId']);
   static readonly PRODUCTION  = new Environment('prd', 'someaccountid', AcceptedRegions.US_EAST_1, 'prdVpcId', ['testSubnetId'], ['testSecurityGroupId']);
