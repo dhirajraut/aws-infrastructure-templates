@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { AwsCdkcloudformationExperimentsStack } from '../lib/aws-cdkcloudformation-experiments-stack';
+import { AwsInfrastructureStack } from './aws-infrastructure-templates-stack';
 import { Environment } from '../lib/environment';
 
 const app = new cdk.App();
@@ -16,7 +16,7 @@ const environment = Environment.fromString(`${deploymentEnvironment}`);
 const stackName = `aws-batch-${environment.name}-cdk-dr`;
 console.log (`Processing stackName as ${stackName}`)
 
-new AwsCdkcloudformationExperimentsStack(app, stackName, {
+new AwsInfrastructureStack(app, stackName, {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */

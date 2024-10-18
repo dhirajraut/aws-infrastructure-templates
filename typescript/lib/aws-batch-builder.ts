@@ -4,10 +4,61 @@ import { Repository, RepositoryProps } from 'aws-cdk-lib/aws-ecr';
 import { LogGroup, LogGroupProps } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
-export interface AwsBatchJobProps {
-  repositoryProps: RepositoryProps;
+export interface AwsBatchComputeProps {
   computeEnvironmentProps: CfnComputeEnvironmentProps;
+}
+export class AwsBatchJobComputeBuilder extends Construct {
+  private id: string;
+  private props: AwsBatchComputeProps;
+
+  build(): CfnComputeEnvironment {
+    const compute: CfnComputeEnvironment = new CfnComputeEnvironment(this, `${this.id}-compute`, this.props.computeEnvironmentProps);
+    if (this.props.computeEnvironmentProps.computeEnvironmentName) {
+      Tags.of(this).add("Name", this.props.computeEnvironmentProps.computeEnvironmentName);
+    }
+    const cfLogicalId = this.id.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+    console.log("logical Id = " + cfLogicalId);
+    compute.overrideLogicalId(`${cfLogicalId}-Compute`);
+    return compute;
+  }
+
+  constructor(construct: Construct, id: string, props: AwsBatchComputeProps) {
+    super(construct, id);
+    this.id = id;
+    this.props = props;
+  }
+}
+
+/* --------------------------------------------------------------- */
+
+export interface AwsBatchJobQueueProps {
   jobQueueProps: CfnJobQueueProps;
+}
+export class AwsBatchJobQueueBuilder extends Construct {
+  private id: string;
+  private props: AwsBatchJobQueueProps;
+
+  build(): CfnJobQueue {
+    const jobQueue: CfnJobQueue = new CfnJobQueue(this, `${this.id}-jq`, this.props.jobQueueProps);
+    if (this.props.jobQueueProps.jobQueueName) {
+      Tags.of(this).add("Name", this.props.jobQueueProps.jobQueueName);
+    }
+    jobQueue.overrideLogicalId("JobQueue");
+    return jobQueue;
+  }
+
+  constructor(construct: Construct, id: string, props: AwsBatchJobQueueProps) {
+    super(construct, id);
+    this.id = id;
+    this.props = props;
+  }
+}
+
+/* --------------------------------------------------------------- */
+
+
+export interface AwsBatchProps {
+  repositoryProps: RepositoryProps;
   jobDefinitionProps: CfnJobDefinitionProps;
   logGroupProps: LogGroupProps;
   stackName?: string;
@@ -15,20 +66,16 @@ export interface AwsBatchJobProps {
 
 export class AwsBatch {
   ecr: Repository;
-
   compute: CfnComputeEnvironment;
-
   jobDefinition: CfnJobDefinition;
-
   jobQueue: CfnJobQueue;
-
   logGroup: LogGroup;
 }
 
 export class AwsBatchBuilder extends Construct {
 
   private id: string;
-  private props: AwsBatchJobProps;
+  private props: AwsBatchProps;
 
   build(): AwsBatch {
 
@@ -40,23 +87,6 @@ export class AwsBatchBuilder extends Construct {
       Tags.of(this).add("Name", this.props.repositoryProps.repositoryName);
     }
     console.log("Repo URI = " + batch.ecr.repositoryUri);
-
-    /* Create Compute Engine. */
-    batch.compute = new CfnComputeEnvironment(this, `${this.id}-compute`, this.props.computeEnvironmentProps);
-    if (this.props.computeEnvironmentProps.computeEnvironmentName) {
-      Tags.of(this).add("Name", this.props.computeEnvironmentProps.computeEnvironmentName);
-    }
-    const cfLogicalId = this.id.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
-    console.log("logical Id = " + cfLogicalId);
-    batch.compute.overrideLogicalId(`${cfLogicalId}Compute`);
-
-    /* Job Queue */
-    batch.jobQueue = new CfnJobQueue(this, `${this.id}-jq`, this.props.jobQueueProps);
-    if (this.props.jobQueueProps.jobQueueName) {
-      Tags.of(this).add("Name", this.props.jobQueueProps.jobQueueName);
-    }
-    batch.jobQueue.overrideLogicalId("JobQueue");
-    batch.jobQueue.addDependsOn(batch.compute);
 
     /* Job Definition */
     batch.jobDefinition = new CfnJobDefinition(this, `${this.id}-jd`, this.props.jobDefinitionProps);
@@ -75,7 +105,7 @@ export class AwsBatchBuilder extends Construct {
     return batch;
   }
 
-  constructor(construct: Construct, id: string, props: AwsBatchJobProps) {
+  constructor(construct: Construct, id: string, props: AwsBatchProps) {
     super(construct, id);
     this.id = id;
     this.props = props;
