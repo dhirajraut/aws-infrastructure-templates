@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Template to create day schedules Batch infra (ECR, Fargate Compute, definitions etc.)"
+
+Parameters:
+  Environment:
+    Description: Application Environment
+    Type: String
+    Default: dev
+    AllowedValues: 
+        - dev
+        - qa
+        - prod
+  retentionInDays:
+    Type: Number
+    Default: "365"
+  jobDefinitionMemory:
+    Type: Number
+    Default: "36864"
+  jobDefinitionVcpus:
+    Type: Number
+    Default: "8"
+
+Mappings:
+  dev:
+    VPC:
+      VpcId: <<vpc id>>
+      SubnetIds:
+        - <<subnet ids>>
+      SecurityGroupIds:
+        - <<security group ids>>
+    Role:
+      RoleArn: <<role arn>>
+    BatchRepoURI:
+      Default: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/<<ecr-name>>:latest"
+    Secrets:
+        <<secret name>>: "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/infra/<<parameter path>>"
+  :
+
+Resources:
+  Compute:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      ComputeEnvironmentName: !Sub "${AWS::StackName}-compute"
+      ServiceRole: !FindInMap [!Ref Environment, Role, RoleArn]
+      State: ENABLED
+      Type: MANAGED
+      ComputeResources:
+        Type: FARGATE
+        MaxvCpus: 256
+        Subnets: !FindInMap [!Ref Environment, VPC, SubnetIds]
+        SecurityGroupIds: !FindInMap [!Ref Environment, VPC, SecurityGroupIds]
+
+  JobQueue:
+    Type: AWS::Batch::JobQueue
+    Properties:
+      JobQueueName: !Sub "${AWS::StackName}-jq"
+      Priority: 1
+      State: ENABLED
+      ComputeEnvironmentOrder:
+        - Order: 1
+          ComputeEnvironment: !Ref Compute
+
+  JobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      JobDefinitionName: !Sub "${AWS::StackName}-jd"
+      Type: container
+      Timeout:
+        AttemptDurationSeconds: "86400"
+      PlatformCapabilities:
+        - FARGATE
+      Parameters:
+        env: !Ref Environment
+      ContainerProperties:
+        Command:
+          - java
+          - -jar
+          - /<<jar name>>.jar
+        Image: !FindInMap [!Ref Environment, BatchRepoURI, Default]
+        ResourceRequirements:
+          - Type: VCPU
+            Value:
+              Ref: jobDefinitionVcpus
+          - Type: MEMORY
+            Value:
+              Ref: jobDefinitionMemory
+        JobRoleArn: !FindInMap [!Ref Environment, Role, RoleArn]
+        ExecutionRoleArn: !FindInMap [!Ref Environment, Role, RoleArn]
+        FargatePlatformConfiguration:
+          PlatformVersion: 1.4.0
+        NetworkConfiguration:
+          AssignPublicIp: ENABLED
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+        Secrets:
+        - Name: "<<secret name>>"
+          ValueFrom: !FindInMap [!Ref Environment, Secrets, dbUrlSnr]
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/batch/job/${AWS::StackName}-log
+      RetentionInDays:
+        Ref: retentionInDays
+  FailureRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description : "Eventbridge Trigger when the batch fails"
+      EventPattern : 
+        source:
+          - aws.batch
+        detail-type:
+          - Batch Job State Change
+        detail:
+          jobQueue:
+            - !GetAtt
+              - JobQueue
+              - JobQueueArn
+          status:
+            - FAILED
+      Name : !Sub "<<rule name>>"
+      State : ENABLED
+      Targets : 
+        - Arn: !Sub "<<sns topic name>>"
+          Id: "targetId"
+  Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties: 
+      AlarmDescription: !Sub "AWS Batch job ${AWS::StackName} failed."
+      AlarmName: !Sub ${AWS::StackName}
+      ActionsEnabled: true
+      AlarmActions: 
+        - !Sub "<<sns topic name>>"
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+           - Name: RuleName
+             Value: !Sub "<<rule name>>"
+      EvaluationPeriods: 1
+      MetricName: TriggeredRules
+      Namespace: AWS/Events
+      Period: 60
+      Statistic: Sum
+      Threshold: 0
+      TreatMissingData: notBreaching

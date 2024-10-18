@@ -1,0 +1,89 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a lambda function
+Parameters:
+  Environment:
+    Description: Application Environment
+    Type: String
+    Default: dev
+    AllowedValues: 
+        - dev
+        - qa
+        - prod
+Mappings:
+  dev:
+    VPC:
+      VpcId: <<vpc id>>
+      SubnetIds:
+        - <<subnet ids>>
+      SecurityGroupIds:
+        - <<security group ids>>
+    Code:
+      Version: <<version>>
+
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName:
+        Fn::Join:
+        - "-"
+        - - <<lambda name suffix>>
+          - Ref: Environment
+          - <<lambda name>>
+      Runtime: java11
+      MemorySize: 2048
+      Handler: <<handler class path>>::handleRequest
+      Timeout: '900'
+      Description: <<description>>
+      Environment:
+        Variables:
+          env:
+            Ref: Environment
+      Code:
+        S3Bucket:
+          Fn::Join:
+          - "-"
+          - - <<bucket name prefix>>
+            - Ref: Environment
+            - <<bucket name>>
+            - Ref: AWS::AccountId
+            - Ref: AWS::Region
+        S3Key:
+          Fn::Join:
+          - ''
+          - - Fn::Join:
+              - "-"
+              - - lambda/<<file path>>
+                - Fn::FindInMap:
+                  - Ref: Environment
+                  - Code
+                  - Version
+            - ".jar"
+      Role:
+        Fn::Join:
+        - "-"
+        - - Fn::Join:
+            - ":"
+            - - 'arn:aws:iam:'
+              - Ref: AWS::AccountId
+              - role/<<role prefix>>
+          - Ref: Environment
+          - <<role name>>
+      VpcConfig:
+        SubnetIds:
+          Fn::FindInMap:
+          - Ref: Environment
+          - VPC
+          - SubnetIds
+        SecurityGroupIds:
+          Fn::FindInMap:
+          - Ref: Environment
+          - VPC
+          - SecurityGroupIds
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: <<lambda name>>
+      - Key: application
+        Value: snr

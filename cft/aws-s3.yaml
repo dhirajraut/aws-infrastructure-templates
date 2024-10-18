@@ -1,0 +1,84 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template for S3 bucket
+Parameters:
+  Environment:
+    Description: Application Environment
+    Type: String
+    Default: dev
+    AllowedValues: 
+        - dev
+        - qa
+        - prod
+Mappings:
+  dev:
+    Policy:
+      Principal1: arn:aws:iam::<<account id 1>>:root
+      Principal2: arn:aws:iam::<<account id 2>>:root
+      Resources:
+      - arn:aws:s3:::<<bucket name>>
+      - arn:aws:s3:::<<bucket name>>/*
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Join:
+        - "-"
+        - - <<bucket name prefix>>
+          - Ref: Environment
+          - <<bucket name>>
+          - Ref: AWS::AccountId
+          - Ref: AWS::Region
+      AccessControl: Private
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: Example permissions
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::FindInMap:
+              - Ref: Environment
+              - Policy
+              - Principal1
+          Action:
+          - s3:GetLifecycleConfiguration
+          - s3:ListBucket
+          - s3:DeleteObject
+          - s3:GetObject
+          - s3:PutObject
+          Resource:
+            Fn::FindInMap:
+            - Ref: Environment
+            - Policy
+            - Resources
+        - Sid: Example permissions
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::FindInMap:
+              - Ref: Environment
+              - Policy
+              - Principal2
+          Action:
+          - s3:GetLifecycleConfiguration
+          - s3:ListBucket
+          - s3:DeleteObject
+          - s3:GetObject
+          - s3:PutObject
+          - s3:GetBucketLocation
+          Resource:
+            Fn::FindInMap:
+            - Ref: Environment
+            - Policy
+            - Resources
+      Bucket:
+        Ref: S3Bucket
+Outputs:
+  BucketName:
+    Value:
+      Ref: S3Bucket

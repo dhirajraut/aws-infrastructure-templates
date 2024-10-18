@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: 'AWS SQS Template'
+Parameters:
+  Environment:
+    Description: Application Environment
+    Type: String
+    Default: dev
+    AllowedValues: 
+        - dev
+        - qa
+        - prod
+  VisibilityTimeout:
+    Description: "Visibility Timeout"
+    Type: Number
+    Default: "900"
+
+Mappings:
+  dev:
+    subscription: 
+      topicArn: "<<sns arn>>"
+  qa:
+    subscription: 
+      topicArn: "<<sns arn>>"
+  prod:
+    subscription: 
+      topicArn: "<<sns arn>>"
+
+Resources:
+  Queue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName: !Join ['-', ["aws", "sqs", !Ref env,"purpose"]]
+      VisibilityTimeout: 0
+  Subscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "sqs"
+      Endpoint:
+        !GetAtt ["Queue", "Arn"]
+      Region:
+        !Ref: "AWS::Region"
+      TopicArn:
+        !FindInMap []
+      RawMessageDelivery: "false"
+      FilterPolicy: ""
+    DependsOn:
+      Queue
+  Policy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      PolicyDocument:
+        Id: "Policy1"
+        Version: "2012-10-17"
+        Statement:
+        -
+          Sid: "sid"
+          Effect: "Allow"
+          Principal:
+            

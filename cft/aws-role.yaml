@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to Create SNR Common IAM Role
+Parameters:
+  Environment:
+    Description: Application Environment
+    Type: String
+    Default: dev
+    AllowedValues: 
+        - dev
+        - qa
+        - prod
+Mappings:
+  AssumeRole:
+    envParams:
+      dev: <<arn>>
+      :
+Resources:
+  SnrCommonRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+        - Effect: Allow
+          Principal:
+            AWS:
+              Fn::FindInMap:
+              - AssumeRole
+              - envParams
+              - Ref: Environment
+          Action: sts:AssumeRole
+      Description: <<description>>
+      Policies:
+      - PolicyName: CreateNetworkInterfaceOnEC2
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeNetworkInterfaces
+            - ec2:CreateNetworkInterface
+            - ec2:DeleteNetworkInterface
+            - ec2:DescribeInstances
+            - ec2:AttachNetworkInterface
+            Resource: "*"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonRDSFullAccess
+      - :
+      RoleName:
+        Fn::Join:
+        - "-"
+        - - <<role name prefix>>
+          - Ref: Environment
+          - <<role name>>

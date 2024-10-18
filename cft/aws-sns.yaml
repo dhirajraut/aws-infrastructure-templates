@@ -1,0 +1,59 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates score activate deactivate SNS
+Parameters:
+  Environment:
+    Description: Application Environment
+    Type: String
+    Default: dev
+    AllowedValues: 
+        - dev
+        - qa
+        - prod
+Mappings:
+  dev:
+    Recipients:
+      Email: <<email id>>
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Join:
+        - "-"
+        - - <<sns prefix>>
+          - Ref: Environment
+          - <<sns name>>
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: "*"
+          Action:
+          - SNS:GetTopicAttributes
+          - SNS:SetTopicAttributes
+          - SNS:AddPermission
+          - SNS:RemovePermission
+          - SNS:DeleteTopic
+          - SNS:Subscribe
+          - SNS:ListSubscriptionsByTopic
+          - SNS:Publish
+          Resource:
+            Ref: Topic
+      Topics:
+      - Ref: Topic
+  Subscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint:
+        Fn::FindInMap:
+        - Ref: Environment
+        - Recipients
+        - Email
+      Protocol: email
+      TopicArn:
+        Ref: Topic
