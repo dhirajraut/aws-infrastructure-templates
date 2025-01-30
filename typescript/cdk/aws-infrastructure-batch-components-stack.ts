@@ -52,7 +52,7 @@ export class BatchComponentsStack extends AwsInfrastructureNestedBaseStack {
     let compositePrincipal = new CompositePrincipal(...servicePrincipals);
 
     const props: AwsRoleBuilderProps = {
-      roleName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-role-${environment.name}-compute-fargate-dr`,
+      roleName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-role-${environment.name}-compute-fargate`,
       assumedBy: compositePrincipal,
       managedPolicies: [ 
         ManagedPolicy.fromAwsManagedPolicyName (`AmazonEC2ContainerRegistryReadOnly`),
@@ -69,7 +69,7 @@ export class BatchComponentsStack extends AwsInfrastructureNestedBaseStack {
 
   buildBatchQueueProps(environment: Environment, compute: CfnComputeEnvironment): AwsBatchQueueProps {
     const props: AwsBatchQueueProps = {
-      jobQueueName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-batch-${environment.name}-queue-priority1-dr`,
+      jobQueueName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-batch-${environment.name}-queue-priority1`,
       priority: 1,
       state: `ENABLED`,
       computeEnvironmentOrder: [{
@@ -82,7 +82,7 @@ export class BatchComponentsStack extends AwsInfrastructureNestedBaseStack {
 
   buildBatchComputeProps(environment: Environment, role: Role): AwsBatchComputeProps {
     const props: AwsBatchComputeProps = {
-      computeEnvironmentName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-batch-${environment.name}-compute-fargate-dr`,
+      computeEnvironmentName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-batch-${environment.name}-compute-fargate`,
       type: 'MANAGED',
       serviceRole: role.roleName,
       // serviceRole: `arn:aws:iam::${environment.account}:role/${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-${environment.name}-common-role`,
@@ -100,7 +100,7 @@ export class BatchComponentsStack extends AwsInfrastructureNestedBaseStack {
   buildCWAlarmProps(environment: Environment, jq: CfnJobQueue): AwsCloudWatchAlarmProps {
     const props: AwsCloudWatchAlarmProps = {
       alarmDescription: `AWS Batch submitted on queue ${jq.jobQueueName} failed.`,
-      alarmName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-alarm-${environment.name}-queue-priority1-dr`,
+      alarmName: `${AwsInfrastructureNestedBaseStack.RESOURCE_PREFIX}-alarm-${environment.name}-queue-priority1`,
       actionsEnabled: true,
       comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
       evaluationPeriods: 1,

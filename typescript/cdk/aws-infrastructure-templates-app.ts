@@ -12,7 +12,7 @@ console.log (`Received deploymentEnvironment as ${deploymentEnvironment}`)
 /* Fetch environment details. */
 const environment = Environment.fromString(`${deploymentEnvironment}`);
 
-const stackName = `aws-batch-${environment.name}-cdk-dr`;
+const stackName = `aws-batch-${environment.name}-cdk`;
 console.log (`Processing stackName as ${stackName}`)
 
 new AwsInfrastructureRootStack(app, stackName, {
